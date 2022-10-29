@@ -53,7 +53,7 @@ if __name__ == '__main__':
     # Считаем меру близости по формуле 6.11
     proximity_measure = calculate_detection_proximity_measure(watermark, extracted_watermark)
     print(f'Proximity measure: {proximity_measure}')
-    #opt = calculate_optimal_parameter(container)
+    # opt = calculate_optimal_parameter(container)
     #print(f'OPT alpha : {opt}')
 
     # +====================================================================================================

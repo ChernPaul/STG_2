@@ -62,13 +62,13 @@ def get_H_zone(container_abs_matrix):
     y_border_size = shape[1]
     x_border_size = shape[0]
 
-    left_border = int(x_border_size - 1)
-    upper_border = int(y_border_size - 1)
+    left_border = int(x_border_size)
+    upper_border = int(y_border_size)
 
-    right_border = int(matrix_shape[0] - x_border_size - 1)
-    lower_border = int(matrix_shape[1] - y_border_size - 1)
-
-    result = np.copy(container_abs_matrix[left_border:right_border, upper_border:lower_border])
+    right_border = int(matrix_shape[0] - x_border_size)
+    lower_border = int(matrix_shape[1] - y_border_size)
+    slice = container_abs_matrix[left_border:right_border, upper_border:lower_border]
+    result = np.copy(slice)
     return result
 
 
@@ -118,7 +118,13 @@ def merge_pictures_H_zone_parts(image, snipped_parts):
 # work with WM functions
 def calculate_detection_proximity_measure(omega, omega_changed):
     nominator = np.sum(omega * omega_changed)
+    print("sum omegas")
+    print(nominator)
     denominator = (np.sqrt(np.sum(omega ** 2)) * np.sqrt(np.sum(omega_changed ** 2)))
+    print("Omega")
+    print(np.sum(omega ** 2))
+    print("Omega changed")
+    print(np.sum(omega_changed ** 2))
     return nominator / denominator
 
 
@@ -156,17 +162,17 @@ def get_container_with_watermark(container, index_zone=0, m=consts.M, sigma=cons
         watermark_length, m, sigma, key)[0].reshape(int(H_zone.shape[0] / 2), int(H_zone.shape[1] / 2))
 
     # 6. Embedding
-    parts_of_H_zone[index_zone] = multiply_embedding(parts_of_H_zone[index_zone], beta, watermark, alpha)
+    parts_of_H_zone[index_zone] = multiply_embedding(parts_of_H_zone[index_zone], watermark, alpha, beta)
 
     # 7. Merge pictures
     abs_matrix_with_watermark = merge_pictures_H_zone_parts(abs_fft_container, parts_of_H_zone)
 
     # 8. Recover complex matrix
-    complex_matrix_with_watermark = calculate_complex_matrix_from_abs_and_phase(abs_matrix_with_watermark,
-                                                                                   phase_fft_container)
 
-    return np.round(np.real(calculate_inverse_fft_matrix(complex_matrix_with_watermark))).astype(np.uint8)
-    # return calculate_inverse_fft_matrix(complex_container_with_watermark)
+    complex_matrix_with_watermark = calculate_complex_matrix_from_abs_and_phase(abs_matrix_with_watermark, phase_fft_container)
+
+    # return np.round(np.real(calculate_inverse_fft_matrix(complex_matrix_with_watermark))).astype(np.uint8)
+    return calculate_inverse_fft_matrix(complex_matrix_with_watermark)
 
 
 def calculate_rho(container):
@@ -215,8 +221,7 @@ def calculate_optimal_parameter(initial_container, target_value=0.9, alpha_max_p
 
         print(f'step {alpha}')
         # 1. Get H zone from changed picture
-        changed_container = get_container_with_watermark(initial_container, consts.M,
-                                                         consts.SIGMA, alpha, consts.BETA, consts.KEY_VALUE_FOR_SEED)
+        changed_container = get_container_with_watermark(initial_container, consts.M, consts.SIGMA, alpha)
         abs_fft_recover = calculate_abs_matrix_from_complex_matrix(calculate_fft_matrix(changed_container))
         H_zone_recover = get_H_zone(abs_fft_recover)
         H_zone_recover_parts = split_H_zone_to_4_parts(H_zone_recover)
