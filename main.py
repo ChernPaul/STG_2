@@ -17,10 +17,6 @@ if __name__ == '__main__':
     container = imread("bridge.tif")
     imshow(container)
     show()
-    nc = np.zeros(np.shape(get_H_zone(container)))
-    nb = merge_pictures_H_zone(container, nc)
-    imshow(nb)
-    show()
     # Получаем контейнер с водяным знаком
     container_with_wm = get_container_with_watermark(container)
 
@@ -40,8 +36,7 @@ if __name__ == '__main__':
     # Получаем водяной знак который был извлечен из сохраненного контейнера
     # Находим значения в сектральной области у сохраненного контейнера
     # H_zone_recover = get_H_zone(calculate_abs_matrix_from_complex_matrix(calculate_fft_matrix(recovered_container_with_wm)))
-    H_zone_recover = get_H_zone(
-        calculate_abs_matrix_from_complex_matrix(calculate_fft_matrix(container_with_wm)))
+    H_zone_recover = get_H_zone(calculate_abs_matrix_from_complex_matrix(calculate_fft_matrix(container_with_wm)))
     # Получаем извлекаемый водяной знак по формуле 6.10 и представляем его в виде вектора
     H_zone_recover_parts = split_H_zone_to_4_parts(H_zone_recover)
     H_zone_parts = split_H_zone_to_4_parts(H_zone)

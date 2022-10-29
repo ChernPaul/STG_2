@@ -40,7 +40,8 @@ def add_embedding(f, beta, omega, alpha=1):
 
 
 def multiply_embedding(f, omega, alpha=consts.ALPHA, beta=consts.BETA):
-    return f * (1 + alpha * beta * omega)
+    result = f * (1 + alpha * beta * omega)
+    return result
 
 
 # read / save
@@ -79,11 +80,11 @@ def merge_pictures_H_zone(image_source, snipped_part):
     y_border_size = result_shape[1]
     x_border_size = result_shape[0]
 
-    left_border = int(x_border_size - 1)
-    upper_border = int(y_border_size - 1)
+    left_border = int(x_border_size)
+    upper_border = int(y_border_size)
 
-    right_border = int(image_shape[0] - x_border_size - 1)
-    lower_border = int(image_shape[1] - y_border_size - 1)
+    right_border = int(image_shape[0] - x_border_size)
+    lower_border = int(image_shape[1] - y_border_size)
 
     result = np.copy(image_source)
     result[left_border:right_border, upper_border:lower_border] = snipped_part
@@ -129,7 +130,8 @@ def calculate_detection_proximity_measure(omega, omega_changed):
 
 
 def calculate_extracted_watermark(f_w, f, alpha=consts.ALPHA, beta=consts.BETA):
-    return (f_w - f) / (beta * alpha * f)
+    result = (f_w - f) / (beta * alpha * f)
+    return result
 
 
 def generate_watermark_as_pseudo_sequence(length, math_expectation=consts.M, sigma=consts.SIGMA,
@@ -170,9 +172,9 @@ def get_container_with_watermark(container, index_zone=0, m=consts.M, sigma=cons
     # 8. Recover complex matrix
 
     complex_matrix_with_watermark = calculate_complex_matrix_from_abs_and_phase(abs_matrix_with_watermark, phase_fft_container)
-
+    container_with_watermark = calculate_inverse_fft_matrix(complex_matrix_with_watermark)
     # return np.round(np.real(calculate_inverse_fft_matrix(complex_matrix_with_watermark))).astype(np.uint8)
-    return calculate_inverse_fft_matrix(complex_matrix_with_watermark)
+    return container_with_watermark
 
 
 def calculate_rho(container):
