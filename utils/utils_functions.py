@@ -39,7 +39,7 @@ def add_embedding(f, beta, omega, alpha=1):
     return f + alpha * beta * omega
 
 
-def multiply_embedding(f, omega,  alpha=consts.ALPHA, beta=consts.BETA):
+def multiply_embedding(f, omega, alpha=consts.ALPHA, beta=consts.BETA):
     return f * (1 + alpha * beta * omega)
 
 
@@ -53,33 +53,27 @@ def read_image(path, as_gray=True):
 
 
 # getting special zone functions
-def get_H_zone(image, modifier=0.25):
-    image_shape = image.shape
-    result_shape = (image_shape[0] * modifier, image_shape[1] * modifier)
-    y_border_size = result_shape[1]
-    x_border_size = result_shape[0]
+def get_H_zone(container_abs_matrix):
+    modifier = 0.25
+    matrix_shape = container_abs_matrix.shape
+
+    shape = (matrix_shape[0] * modifier, matrix_shape[1] * modifier)
+
+    y_border_size = shape[1]
+    x_border_size = shape[0]
 
     left_border = int(x_border_size - 1)
     upper_border = int(y_border_size - 1)
 
-    right_border = int(image_shape[0] - x_border_size - 1)
-    lower_border = int(image_shape[1] - y_border_size - 1)
+    right_border = int(matrix_shape[0] - x_border_size - 1)
+    lower_border = int(matrix_shape[1] - y_border_size - 1)
 
-    result = np.copy(image[left_border:right_border, upper_border:lower_border])
+    result = np.copy(container_abs_matrix[left_border:right_border, upper_border:lower_border])
     return result
 
 
-def split_H_zone_to_4_parts(image):
-    x_center, y_center = int(image.shape[0] / 2), int(image.shape[1] / 2)
-
-    left_up = image[0:x_center, 0:y_center]
-    right_up = image[0:x_center, y_center:image.shape[1]]
-    left_down = image[x_center:image.shape[0], 0:y_center]
-    right_down = image[x_center:image.shape[0], y_center:image.shape[1]]
-    return [left_up, right_up, left_down, right_down]
-
-
-def merge_pictures_H_zone(image_source, snipped_part, modifier=0.25):
+def merge_pictures_H_zone(image_source, snipped_part):
+    modifier = 0.25
     image_shape = image_source.shape
     result_shape = (image_shape[0] * modifier, image_shape[1] * modifier)
     y_border_size = result_shape[1]
@@ -97,13 +91,27 @@ def merge_pictures_H_zone(image_source, snipped_part, modifier=0.25):
     return result
 
 
+def split_H_zone_to_4_parts(H_zone):
+    x_center, y_center = int(H_zone.shape[0] / 2), int(H_zone.shape[1] / 2)
+
+    left_up = H_zone[0:x_center, 0:y_center]
+    right_up = H_zone[0:x_center, y_center:H_zone.shape[1]]
+    left_down = H_zone[x_center:H_zone.shape[0], 0:y_center]
+    right_down = H_zone[x_center:H_zone.shape[0], y_center:H_zone.shape[1]]
+    return [left_up, right_up, left_down, right_down]
+
+
 def merge_pictures_H_zone_parts(image, snipped_parts):
+    # получение нужного размера - возвращется новая матрица
     new_H_zone = get_H_zone(image)
+
     x_center, y_center = int(new_H_zone.shape[0] / 2), int(new_H_zone.shape[1] / 2)
+
     new_H_zone[0:x_center, 0:y_center] = snipped_parts[0]
     new_H_zone[0:x_center, y_center:image.shape[1]] = snipped_parts[1]
     new_H_zone[x_center:image.shape[0], 0:y_center] = snipped_parts[2]
     new_H_zone[x_center:image.shape[0], y_center:image.shape[1]] = snipped_parts[3]
+
     return merge_pictures_H_zone(image, new_H_zone)
 
 
@@ -127,7 +135,8 @@ def generate_watermark_as_pseudo_sequence(length, math_expectation=consts.M, sig
     return result, key
 
 
-def get_container_with_watermark(container, m=consts.M, sigma=consts.SIGMA, alpha=consts.ALPHA, beta=consts.BETA, key=consts.KEY_VALUE_FOR_SEED):
+def get_container_with_watermark(container, index_zone=0, m=consts.M, sigma=consts.SIGMA, alpha=consts.ALPHA, beta=consts.BETA,
+                                 key=consts.KEY_VALUE_FOR_SEED):
     # 1. Get complex matrix of container
     container_complex_matrix = calculate_fft_matrix(container)
 
@@ -138,28 +147,26 @@ def get_container_with_watermark(container, m=consts.M, sigma=consts.SIGMA, alph
     # 3. Snipping
     H_zone = get_H_zone(abs_fft_container)
     parts_of_H_zone = split_H_zone_to_4_parts(H_zone)
-    first_quarter = parts_of_H_zone[0]
 
     # 4. Get watermark length
     watermark_length = int(H_zone.shape[0] * H_zone.shape[1] / 4)
 
     # 5. Get watermark
     watermark = generate_watermark_as_pseudo_sequence(
-        watermark_length, m, sigma, key)[0].reshape(int(H_zone.shape[0]/2), int(H_zone.shape[1]/2))
+        watermark_length, m, sigma, key)[0].reshape(int(H_zone.shape[0] / 2), int(H_zone.shape[1] / 2))
 
     # 6. Embedding
-    parts_of_H_zone[0] = multiply_embedding(first_quarter, beta, watermark, alpha)
+    parts_of_H_zone[index_zone] = multiply_embedding(parts_of_H_zone[index_zone], beta, watermark, alpha)
 
     # 7. Merge pictures
-
-    abs_container_with_watermark = merge_pictures_H_zone_parts(abs_fft_container, parts_of_H_zone)
+    abs_matrix_with_watermark = merge_pictures_H_zone_parts(abs_fft_container, parts_of_H_zone)
 
     # 8. Recover complex matrix
-    complex_container_with_watermark = calculate_complex_matrix_from_abs_and_phase(abs_container_with_watermark,
+    complex_matrix_with_watermark = calculate_complex_matrix_from_abs_and_phase(abs_matrix_with_watermark,
                                                                                    phase_fft_container)
 
-    # return np.round(np.real(calculate_inverse_fft_matrix(complex_container_with_watermark))).astype(np.uint8)
-    return calculate_inverse_fft_matrix(complex_container_with_watermark)
+    return np.round(np.real(calculate_inverse_fft_matrix(complex_matrix_with_watermark))).astype(np.uint8)
+    # return calculate_inverse_fft_matrix(complex_container_with_watermark)
 
 
 def calculate_rho(container):
@@ -188,16 +195,23 @@ def calculate_rho(container):
                                                  calculate_extracted_watermark(H_zone_recover, H_zone, consts.ALPHA))
 
 
-def calculate_optimal_parameter(initial_container, target_value=0.9, max_possible_value=1.0):
-    alpha = 0.001
+def calculate_optimal_parameter(initial_container, target_value=0.9, alpha_max_possible_value=1.0):
+    alpha = 0.01
+    step = 0.01
     alphas = list()
-    omega = list()
     omega_tilda = list()
 
     rho_max = 0
     alpha_max = 0
 
-    while alpha < max_possible_value:
+    # 2. Get H zone from initial container
+    abs_fft_container = calculate_abs_matrix_from_complex_matrix(calculate_fft_matrix(initial_container))
+    H_zone = get_H_zone(abs_fft_container)
+    watermark_length = int(H_zone.shape[0] * H_zone.shape[1] / 4)
+    H_zone_parts = split_H_zone_to_4_parts(H_zone)
+    watermark = generate_watermark_as_pseudo_sequence(watermark_length,
+                                                      consts.M, consts.SIGMA, consts.KEY_VALUE_FOR_SEED)[0]
+    while alpha < alpha_max_possible_value:
 
         print(f'step {alpha}')
         # 1. Get H zone from changed picture
@@ -205,19 +219,11 @@ def calculate_optimal_parameter(initial_container, target_value=0.9, max_possibl
                                                          consts.SIGMA, alpha, consts.BETA, consts.KEY_VALUE_FOR_SEED)
         abs_fft_recover = calculate_abs_matrix_from_complex_matrix(calculate_fft_matrix(changed_container))
         H_zone_recover = get_H_zone(abs_fft_recover)
+        H_zone_recover_parts = split_H_zone_to_4_parts(H_zone_recover)
+        watermark_tilda = np.reshape(calculate_extracted_watermark(H_zone_recover_parts[0], H_zone_parts[0], alpha),
+                                     (1, int(H_zone.shape[0] * H_zone.shape[1]/4)))
 
-        # 2. Get H zone from initial picture
-        abs_fft_container = calculate_abs_matrix_from_complex_matrix(calculate_fft_matrix(initial_container))
-        H_zone = get_H_zone(abs_fft_container)
-
-        new_shape = [1, H_zone_recover.shape[0] * H_zone_recover.shape[1]]
-        watermark = generate_watermark_as_pseudo_sequence(new_shape[1],
-                                                          consts.M, consts.SIGMA, consts.KEY_VALUE_FOR_SEED)[0]
-        watermark_tilda = calculate_extracted_watermark(
-            H_zone_recover.reshape(new_shape[0], new_shape[1]),
-            H_zone.reshape(new_shape[0], new_shape[1]),
-            consts.ALPHA)
-        rho = calculate_detection_proximity_measure(watermark.reshape(new_shape[0], new_shape[1]), watermark_tilda)
+        rho = calculate_detection_proximity_measure(watermark, watermark_tilda)
 
         if rho > rho_max:
             rho_max = rho
@@ -225,18 +231,17 @@ def calculate_optimal_parameter(initial_container, target_value=0.9, max_possibl
 
         if rho >= target_value:
             alphas.append(alpha)
-            omega.append(watermark)
             omega_tilda.append(watermark_tilda)
-        alpha += 0.001
+        alpha += step
 
     if len(alphas) == 0:
         return alpha_max
 
     alpha_min = alphas[0]
-    PSNR_min = cv2.PSNR(omega[0], omega_tilda[0])
+    PSNR_min = cv2.PSNR(watermark, omega_tilda[0])
 
     for i in range(1, len(alphas)):
-        PSNR = cv2.PSNR(omega[i], omega_tilda[i])
+        PSNR = cv2.PSNR(watermark, omega_tilda[i])
         if PSNR_min > PSNR:
             PSNR_min = PSNR
             alpha_min = alphas[i]

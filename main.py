@@ -9,13 +9,17 @@ from utils.utils_functions import get_container_with_watermark, save_image, calc
     split_H_zone_to_4_parts, \
     merge_pictures_H_zone_parts, calculate_detection_proximity_measure, different_fragments, \
     calculate_inverse_fft_matrix, \
-    calculate_complex_matrix_from_abs_and_phase, calculate_optimal_parameter
+    calculate_complex_matrix_from_abs_and_phase, calculate_optimal_parameter, merge_pictures_H_zone
 from consts import consts
 
 if __name__ == '__main__':
     # Получаем пустой контейнер
     container = imread("bridge.tif")
     imshow(container)
+    show()
+    nc = np.zeros(np.shape(get_H_zone(container)))
+    nb = merge_pictures_H_zone(container, nc)
+    imshow(nb)
     show()
     # Получаем контейнер с водяным знаком
     container_with_wm = get_container_with_watermark(container)
@@ -30,7 +34,7 @@ if __name__ == '__main__':
     H_zone = get_H_zone(calculate_abs_matrix_from_complex_matrix(calculate_fft_matrix(container)))
 
     # Получаем водяной знак который был встроен путем генерации на основе ключа
-    watermark_length = H_zone.shape[0] * H_zone.shape[1]
+    watermark_length = int(H_zone.shape[0] * H_zone.shape[1] / 4)
     watermark = generate_watermark_as_pseudo_sequence(watermark_length)[0]
 
     # Получаем водяной знак который был извлечен из сохраненного контейнера
@@ -39,16 +43,18 @@ if __name__ == '__main__':
     H_zone_recover = get_H_zone(
         calculate_abs_matrix_from_complex_matrix(calculate_fft_matrix(container_with_wm)))
     # Получаем извлекаемый водяной знак по формуле 6.10 и представляем его в виде вектора
+    H_zone_recover_parts = split_H_zone_to_4_parts(H_zone_recover)
+    H_zone_parts = split_H_zone_to_4_parts(H_zone)
 
-    extracted_watermark = np.reshape(calculate_extracted_watermark(H_zone_recover, H_zone, consts.ALPHA),
-                                     (1, H_zone.shape[0] * H_zone.shape[1]))
+    extracted_watermark = np.reshape(
+        calculate_extracted_watermark(H_zone_recover_parts[0], H_zone_parts[0], consts.ALPHA),
+        (1, int(H_zone.shape[0] * H_zone.shape[1]/4)))
 
     # Считаем меру близости по формуле 6.11
     proximity_measure = calculate_detection_proximity_measure(watermark, extracted_watermark)
     print(f'Proximity measure: {proximity_measure}')
     #opt = calculate_optimal_parameter(container)
-    #print(f'OPT Proximity measure: {opt}')
-
+    #print(f'OPT alpha : {opt}')
 
     # +====================================================================================================
     #
