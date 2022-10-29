@@ -7,9 +7,10 @@ from utils.utils_functions import get_container_with_watermark, save_image, calc
     calculate_abs_matrix_from_complex_matrix, get_H_zone, read_image, generate_watermark_as_pseudo_sequence, \
     calculate_phase_matrix_from_complex_matrix, calculate_extracted_watermark, multiply_embedding, \
     split_H_zone_to_4_parts, \
-    merge_pictures_H_zone_parts, calculate_detection_proximity_measure, different_fragments, \
+    merge_pictures_H_zone_parts, calculate_detection_proximity_measure, \
     calculate_inverse_fft_matrix, \
-    calculate_complex_matrix_from_abs_and_phase, calculate_optimal_parameter, merge_pictures_H_zone
+    calculate_complex_matrix_from_abs_and_phase, calculate_optimal_parameter, merge_pictures_H_zone, \
+    calculate_rho_psnr_by_alpha
 from consts import consts
 
 if __name__ == '__main__':
@@ -21,11 +22,13 @@ if __name__ == '__main__':
     container_with_wm = get_container_with_watermark(container)
 
     # Сохраняем контейнер с водяным знаком
-    #save_image(container_with_wm, 'files/result.png')
+    save_image(container_with_wm, 'files/result.png')
 
     # Считываем контейнер с водяным знаком
-    #recovered_container_with_wm = read_image('files/result.png')
-
+    recovered_container_with_wm = read_image('files/result.png')
+    # Показываем контейнер с водяным знаком
+    imshow(container)
+    show()
     # Находим значения в сектральной области у исходного контейнера
     H_zone = get_H_zone(calculate_abs_matrix_from_complex_matrix(calculate_fft_matrix(container)))
 
@@ -36,50 +39,33 @@ if __name__ == '__main__':
     # Получаем водяной знак который был извлечен из сохраненного контейнера
     # Находим значения в сектральной области у сохраненного контейнера
     # H_zone_recover = get_H_zone(calculate_abs_matrix_from_complex_matrix(calculate_fft_matrix(recovered_container_with_wm)))
-    H_zone_recover = get_H_zone(calculate_abs_matrix_from_complex_matrix(calculate_fft_matrix(container_with_wm)))
+    H_zone_recover = get_H_zone(calculate_abs_matrix_from_complex_matrix(calculate_fft_matrix(recovered_container_with_wm)))
     # Получаем извлекаемый водяной знак по формуле 6.10 и представляем его в виде вектора
     H_zone_recover_parts = split_H_zone_to_4_parts(H_zone_recover)
     H_zone_parts = split_H_zone_to_4_parts(H_zone)
 
-    extracted_watermark = np.reshape(
+    extracted_watermark = np.squeeze(np.reshape(
         calculate_extracted_watermark(H_zone_recover_parts[0], H_zone_parts[0], consts.ALPHA),
-        (1, int(H_zone.shape[0] * H_zone.shape[1]/4)))
+        (1, int(H_zone.shape[0] * H_zone.shape[1]/4))))
 
     # Считаем меру близости по формуле 6.11
     proximity_measure = calculate_detection_proximity_measure(watermark, extracted_watermark)
     print(f'Proximity measure: {proximity_measure}')
-    # opt = calculate_optimal_parameter(container)
-    #print(f'OPT alpha : {opt}')
+    opt = calculate_optimal_parameter(container, alpha_max_possible_value=2, step=0.1)
+    print(f'OPT alpha : {opt}')
+    rho_opt, psnr_opt = calculate_rho_psnr_by_alpha(container, opt)
+    print(f'OPT rho and psnr : {rho_opt}, {psnr_opt}')
 
-    # +====================================================================================================
-    #
-    # fft_container = calculate_fft_matrix(container)
-    # abs_fft_container = calculate_abs_matrix_from_complex_matrix(fft_container)
-    # phase_fft_container = calculate_phase_matrix_from_complex_matrix(fft_container)
-    #
-    # H_zone = get_H_zone(abs_fft_container)
-    # initial_parts = split_image_to_4_parts(H_zone)
-    # watermark_length = initial_parts[0].shape[0] * initial_parts[0].shape[1]
-    # watermark = generate_watermark_as_pseudo_sequence(watermark_length, 300, 10, consts.KEY_VALUE_FOR_SEED)[0]
-    #
-    # for i in range(0, 4, 1):
-    #     initial_parts[i] = multiply_embedding(initial_parts[i],
-    #                                           consts.BETA, watermark.reshape(initial_parts[i].shape[0],
-    #                                                                          initial_parts[i].shape[1]),
-    #                                           consts.ALPHA)
-    #
-    # abs_container_with_watermark = merge_pictures_H_zone_parts(abs_fft_container, initial_parts)
-    # complex_container_with_watermark = calculate_complex_matrix_from_abs_and_phase(abs_container_with_watermark,
-    #                                                                                phase_fft_container)
-    # recovered_container_with_wm = calculate_inverse_fft_matrix(complex_container_with_watermark)
-    # save_image(recovered_container_with_wm, 'files/Paul.png')
-    #
-    # # result_image = read_image('files/result.png')
-    # # abs_fft_container = calculate_abs_matrix_from_complex_matrix(calculate_inverse_fft_matrix(container))
-    # # H_zone = get_H_zone(abs_fft_container)
-    # # initial_parts = split_image_to_4_parts(H_zone)
-    #
-    # # different_fragments(initial_parts, result_image, watermark)
-    #
-    # # alpha_result = get_optimal_parameter(container)
-    # # print(f'{alpha_result}')
+    rho_some, psnr_some = calculate_rho_psnr_by_alpha(container, 1)
+    print(f'Some rho and psnr : {rho_some}, {psnr_some}')
+
+    print("different fragments")
+    ind0_rho, ind0_psnr = calculate_rho_psnr_by_alpha(container, 1, 0)
+    print(f'Index 0 rho and psnr : {ind0_rho}, {ind0_psnr}')
+    ind1_rho, ind1_psnr = calculate_rho_psnr_by_alpha(container, 1, 1)
+    print(f'Index 1 rho and psnr : {ind1_rho}, {ind1_psnr}')
+    ind2_rho, ind2_psnr = calculate_rho_psnr_by_alpha(container, 1, 2)
+    print(f'Index 2 rho and psnr : {ind2_rho}, {ind2_psnr}')
+    ind3_rho, ind3_psnr = calculate_rho_psnr_by_alpha(container, 1, 3)
+    print(f'Index 3 rho and psnr : {ind3_rho}, {ind3_psnr}')
+
