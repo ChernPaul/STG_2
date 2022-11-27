@@ -119,15 +119,15 @@ def merge_pictures_H_zone_parts(image, snipped_parts):
 # work with WM functions
 def calculate_detection_proximity_measure(omega, omega_changed):
     nominator = np.sum(omega * omega_changed)
-    # print("sum omegas")
-    # print(nominator)
+    #print("nominator")
+    #print(nominator)
     denominator = (np.sqrt(np.sum(omega ** 2)) * np.sqrt(np.sum(omega_changed ** 2)))
-    # print("Omega")
-    # print(np.sum(omega ** 2))
-    # print("Omega changed")
-    # print(np.sum(omega_changed ** 2))
-    return nominator / denominator
-
+    #print("denominator")
+    #print(denominator)
+    if nominator >= 0:
+        return nominator / denominator
+    else:
+        return 0
 
 def calculate_extracted_watermark(f_w, f, alpha=consts.ALPHA, beta=consts.BETA):
     result = (f_w - f) / (beta * alpha * f)
