@@ -1,5 +1,4 @@
 import time
-
 import numpy as np
 import scipy.fft
 from matplotlib import pyplot as plt
@@ -77,19 +76,6 @@ if __name__ == '__main__':
     print(f'Index 3 rho and psnr : {ind3_rho}, {ind3_psnr}')
     """
 
-
-    # figure_0 = plt.figure()
-    # figure_0.suptitle("Source container and cut result")
-    # sub_1 = figure_0.add_subplot(1, 2, 1)
-    # sub_1.set(title='Source container')
-    # imshow(container)
-    #
-    # sub_2 = figure_0.add_subplot(1, 2, 2)
-    # sub_2.set(title='Cut distortion')
-    # cut_dist = apply_cut_distortion(recovered_container_with_wm, container, 0.1)
-    # imshow(cut_dist)
-    # show()
-
     H_zone = get_H_zone(calculate_abs_matrix_from_complex_matrix(calculate_fft_matrix(container)))
     watermark_length = int(H_zone.shape[0] * H_zone.shape[1] / 4)
     watermark = generate_watermark_as_pseudo_sequence(watermark_length)[0]
@@ -105,21 +91,21 @@ if __name__ == '__main__':
     proximity_measure = calculate_detection_proximity_measure(watermark, extracted_watermark)
     print(f'Proximity measure without distortion: {proximity_measure}')
 
-    # print('CUT analyze started')
-    # analyze_cut_distortion(container, rec_container_with_wm, watermark, cut_dist_func=apply_cut_distortion)
-    # print('CUT analyze ended \n')
-    #
-    # print('SCALE analyze started')
-    # analyze_scale(container, rec_container_with_wm, watermark)
-    # print('SCALE analyze ended \n')
+    print('CUT analyze started')
+    analyze_cut_distortion(container, rec_container_with_wm, watermark, cut_dist_func=apply_cut_distortion)
+    print('CUT analyze ended \n')
 
-    # print('WHITE NOISE analyze started')
-    # analyze_white_noise(container, rec_container_with_wm, watermark)
-    # print('WHITE NOISE analyze ended \n')
+    print('SCALE analyze started')
+    analyze_scale(container, rec_container_with_wm, watermark)
+    print('SCALE analyze ended \n')
 
-
+    print('WHITE NOISE analyze started')
+    analyze_white_noise(container, rec_container_with_wm, watermark)
+    print('WHITE NOISE analyze ended \n')
 
 
+    # uncomment if needed
+    """
     print('GaussBlur analyze started')
 
 
@@ -154,7 +140,8 @@ if __name__ == '__main__':
     analyze_GaussBlur(container, rec_container_with_wm, watermark)
     print('GaussBlur analyze ended')
 
-
-    # table = analyze_2_distortions(rec_container_with_wm, container, watermark, skip_images=True)
+    """
+    # set True to skip 56 images
+    table = analyze_2_distortions(rec_container_with_wm, container, watermark, skip_images=False)
 
 
