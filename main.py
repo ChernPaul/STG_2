@@ -19,7 +19,7 @@ from consts import consts
 
 if __name__ == '__main__':
     # Получаем пустой контейнер
-    container = imread("bridge.tif")
+    container = imread("barb.tif")
     imshow(container)
     show()
     # Получаем контейнер с водяным знаком
@@ -142,6 +142,6 @@ if __name__ == '__main__':
 
     """
     # set True to skip 56 images
-    table = analyze_2_distortions(rec_container_with_wm, container, watermark, skip_images=False)
+    table = analyze_2_distortions(rec_container_with_wm, container, watermark, skip_images=True)
 
 
